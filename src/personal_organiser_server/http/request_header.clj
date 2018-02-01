@@ -157,8 +157,8 @@
 	"Range request-header field: Since all HTTP entities are represented in HTTP messages as sequences of bytes, the concept of a byte range is meaningful for any HTTP entity. Byte range specifications in HTTP aply to the secuence of bytes in the entity-body (not necessarily the same as message-body).
 	
 	example:	0-499
-						9500-
-						<first-byte-pos> - [<last-byte-pos>]
+						    9500-
+						    <first-byte-pos> - [<last-byte-pos>]
 	
 	https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35"
 	[]
@@ -281,10 +281,10 @@
 	"X-Forwarded-For")
 
 (defn x-forwarded-host
-	"X forwarded host (XFH) request-header is a de-facto standard header for identifying the original host requested by the client in the Host HTTP request header. Host names and ports of reverse proxies (load balancers, CDNs) may differ from the origin server handling the request, in case that case the X-Forwarded-Host is useful to determine which Host was originally used.
+	"X forwarded host (XFH) request-header is a de-facto standard header for identifying the original host requested by the client in the Host HTTP request header. Host names and ports of reverse proxies (load balancers, CDNs) may differ from the origin server handling the request, in that case the X-Forwarded-Host is useful to determine which Host was originally used.
 	
 	example:	<host>
-						id42.example-cdn.com
+						    id42.example-cdn.com
 	
 	https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host"
 	[]
