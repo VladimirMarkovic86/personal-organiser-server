@@ -18,12 +18,16 @@
       [personal-organiser-server.http.status-code
        :as stc]))
 
-(defn hello-world [param]
+(defn hello-world
+  ""
+  [param]
   {:status  (stc/ok)
    :headers {(enth/content-type) "text/plain"}
    :body    (str "Hello World " param)})
 
-(defn hello-world-error [param]
+(defn hello-world-error
+  ""
+  [param]
   {:status  (stc/bad-request)
    :headers {(enth/content-type) "text/plain"}
    :body    (str "Hello World " param)})
@@ -119,6 +123,55 @@
              nil))
   return-value)
 
+(def grocery-header
+ {:gname "Name"
+  :calories "Calories"
+  :fats "Fats"
+  :proteins "Proteins"
+  :carbonhydrates "Carbonhydrates"
+  :origin "Origin"
+  :edit "Edit"
+  :delete "Delete"})
+
+(def groceries
+  [{:gname "Boranija"
+    :calories 1
+    :fats 2
+    :proteins 3
+    :carbonhydrates 4
+    :origin "Vegetarijanski"
+    :edit "<a id=\"edit-boranija\" href=\"#\" >edit</a>"
+    :delete "<a id=\"delete-boranija\" href=\"#\" >delete</a>"}
+   {:gname "Pasulj"
+    :calories 1
+    :fats 2
+    :proteins 3
+    :carbonhydrates 4
+    :origin "Vegetarijanski"
+    :edit "<a id=\"edit-pasulj\" href=\"#\" >edit</a>"
+    :delete "<a id=\"delete-pasulj\" href=\"#\" >delete</a>"}
+   {:gname "Krompir"
+    :calories 1
+    :fats 2
+    :proteins 3
+    :carbonhydrates 4
+    :origin "Vegetarijanski"
+    :edit "<a id=\"edit-krompir\" href=\"#\" >edit</a>"
+    :delete "<a id=\"delete-krompir\" href=\"#\" >delete</a>"}])
+
+(defn grocery-table-data
+  ""
+  [query-map]
+  (Thread/sleep 2000)
+  (if (= (:search query-map) "all")
+   {:status  (stc/ok)
+    :headers {(enth/content-type) "text/plain"}
+    :body    (str {:grocery-header grocery-header
+                   :groceries      groceries})}
+   {:status  (stc/bad-request)
+    :headers {(enth/content-type) "text/plain"}
+    :body    (str {:error-message "404 Bad request"})}))
+
 (defroutes app-routes
   (GET "/what-is-my-ip"
        request
@@ -159,6 +212,12 @@
         request
         (println request)
         (am-i-logged-in (get-cookie request "session"))
+   )
+  (POST "/grocery-table-data"
+        request
+        (println request)
+        (grocery-table-data (read-string (slurp (:body request))
+                             ))
    )
   (route/resources "/")
   (route/not-found (hello-world "hi"))
