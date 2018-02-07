@@ -124,53 +124,76 @@
   return-value)
 
 (def grocery-header
- {:gname "Name"
-  :calories "Calories"
-  :fats "Fats"
-  :proteins "Proteins"
-  :carbonhydrates "Carbonhydrates"
-  :origin "Origin"
-  :edit "Edit"
-  :delete "Delete"})
+ {:gname {:content "Name"}
+  :calories {:content "Calories"}
+  :fats {:content "Fats"}
+  :proteins {:content "Proteins"}
+  :carbonhydrates {:content "Carbonhydrates"}
+  :origin {:content "Origin"}
+  :option {:colspan 2
+           :content "Option"}})
+
+(def grocery-columns
+ [:gname
+  :calories
+  :fats
+  :proteins
+  :carbonhydrates
+  :origin
+  :edit
+  :delete])
 
 (def groceries
-  [{:gname "Boranija"
-    :calories 1
-    :fats 2
-    :proteins 3
-    :carbonhydrates 4
-    :origin "Vegetarijanski"
-    :edit "<a id=\"edit-boranija\" href=\"#\" >edit</a>"
-    :delete "<a id=\"delete-boranija\" href=\"#\" >delete</a>"}
-   {:gname "Pasulj"
-    :calories 1
-    :fats 2
-    :proteins 3
-    :carbonhydrates 4
-    :origin "Vegetarijanski"
-    :edit "<a id=\"edit-pasulj\" href=\"#\" >edit</a>"
-    :delete "<a id=\"delete-pasulj\" href=\"#\" >delete</a>"}
-   {:gname "Krompir"
-    :calories 1
-    :fats 2
-    :proteins 3
-    :carbonhydrates 4
-    :origin "Vegetarijanski"
-    :edit "<a id=\"edit-krompir\" href=\"#\" >edit</a>"
-    :delete "<a id=\"delete-krompir\" href=\"#\" >delete</a>"}])
+  (atom [{:gname "Boranija"
+          :calories 1
+          :fats 2
+          :proteins 3
+          :carbonhydrates 4
+          :origin "Vegetarijanski"
+          :edit "<a id=\"edit-boranija\" href=\"#\" >edit</a>"
+          :delete "<a id=\"delete-boranija\" href=\"#\" >delete</a>"}
+         {:gname "Pasulj"
+          :calories 1
+          :fats 2
+          :proteins 3
+          :carbonhydrates 4
+          :origin "Vegetarijanski"
+          :edit "<a id=\"edit-pasulj\" href=\"#\" >edit</a>"
+          :delete "<a id=\"delete-pasulj\" href=\"#\" >delete</a>"}
+         {:gname "Krompir"
+          :calories 1
+          :fats 2
+          :proteins 3
+          :carbonhydrates 4
+          :origin "Vegetarijanski"
+          :edit "<a id=\"edit-krompir\" href=\"#\" >edit</a>"
+          :delete "<a id=\"delete-krompir\" href=\"#\" >delete</a>"}
+         {:gname "Psenica"
+          :calories 1
+          :fats 2
+          :proteins 3
+          :carbonhydrates 4
+          :origin "Vegetarijanski"
+          :edit "<a id=\"edit-psenica\" href=\"#\" >edit</a>"
+          :delete "<a id=\"delete-psenica\" href=\"#\" >delete</a>"}]))
 
 (defn grocery-table-data
   ""
   [query-map]
-  (Thread/sleep 2000)
   (if (= (:search query-map) "all")
    {:status  (stc/ok)
     :headers {(enth/content-type) "text/plain"}
-    :body    (str {:grocery-header grocery-header
-                   :groceries      groceries})}
+    :body    (str {:grocery-header   grocery-header
+                   :grocery-columns  grocery-columns
+                   :groceries        @groceries})}
    {:status  (stc/bad-request)
     :headers {(enth/content-type) "text/plain"}
     :body    (str {:error-message "404 Bad request"})}))
+
+(defn insert-grocery
+  ""
+  [grocery-map]
+  (swap! groceries conj grocery-map))
 
 (defroutes app-routes
   (GET "/what-is-my-ip"
@@ -219,6 +242,12 @@
         (grocery-table-data (read-string (slurp (:body request))
                              ))
    )
+  (POST "/insert-grocery"
+        request
+        (println request)
+        (insert-grocery (read-string (slurp (:body request))
+                             ))
+   )
   (route/resources "/")
   (route/not-found (hello-world "hi"))
 ; (POST "*"
@@ -234,7 +263,8 @@
                    :access-control-allow-origin    [#"https://personal-organiser:8443"
                                                     #"http://personal-organiser:8445"
                                                     #"https://127.0.0.1:8443"
-                                                    #"http://127.0.0.1:8445"]
+                                                    #"http://127.0.0.1:8445"
+                                                    #"http://localhost:3449"]
                    :access-control-allow-methods   [:get :post]
                    ;:access-control-allow-credentials  "true"
                    ))
