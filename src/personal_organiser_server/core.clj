@@ -1,40 +1,33 @@
 (ns personal-organiser-server.core
- (:use [compojure.core
-        :only [defroutes GET POST OPTIONS]]
-       [clojure.data
-        :only [diff]])
- (:require [compojure.handler
-             :as chandler]
-      [compojure.route
-       :as route]
-      [ring.adapter.jetty
-       :refer [run-jetty]]
-      [personal-organiser-server.ring.middleware.cors
-       :refer [wrap-cors]]
-      [personal-organiser-server.http.entity-header
-       :as enth]
-      [personal-organiser-server.http.response-header
-       :as resh]
-      [personal-organiser-server.http.status-code
-       :as stc]))
+ (:use [compojure.core :only [defroutes GET POST OPTIONS]]
+       [clojure.data   :only [diff]])
+ (:require
+      [compojure.handler                              :as chandler]
+      [compojure.route                                :as route]
+      [ring.adapter.jetty                             :refer [run-jetty]]
+      [personal-organiser-server.ring.middleware.cors :refer [wrap-cors]]
+      [personal-organiser-server.http.entity-header   :as eh]
+      [personal-organiser-server.http.response-header :as rsh]
+      [personal-organiser-server.http.mime-type       :as mt]
+      [personal-organiser-server.http.status-code     :as stc]))
 
 (defn hello-world
   ""
   [param]
   {:status  (stc/ok)
-   :headers {(enth/content-type) "text/plain"}
+   :headers {(eh/content-type) (mt/text-plain)}
    :body    (str "Hello World " param)})
 
 (defn hello-world-error
   ""
   [param]
   {:status  (stc/bad-request)
-   :headers {(enth/content-type) "text/plain"}
+   :headers {(eh/content-type) (mt/text-plain)}
    :body    (str "Hello World " param)})
    
 (defn what-is-my-ip [remote-addr]
   {:status  (stc/ok)
-   :headers {(enth/content-type) "text/plain"}
+   :headers {(eh/content-type) (mt/text-plain)}
    :body    remote-addr})
 
 (defn random-uuid
@@ -78,8 +71,8 @@
    (if (= (:status result)
           "success")
        {:status  (stc/ok)
-        :headers {(enth/content-type) "text/plain"
-                  (resh/set-cookie)   (str "session=" (random-uuid) "; "
+        :headers {(eh/content-type) (mt/text-plain)
+                  (rsh/set-cookie)   (str "session=" (random-uuid) "; "
                                            "Expires=Wed, 30 Aug 2019 00:00:00 GMT; "
                                            "Path=/"
                                            ;"Domain=localhost:1612; "
@@ -88,7 +81,7 @@
                                            )}
         :body    (str result)}
        {:status  (stc/unauthorized)
-        :headers {(enth/content-type) "text/plain"}
+        :headers {(eh/content-type) (mt/text-plain)}
         :body    (str result)})
    ))
 
@@ -107,93 +100,159 @@
   (if (= session-uuid
          uuid)
       {:status  (stc/ok)
-       :headers {(enth/content-type) "text/plain"}}
+       :headers {(eh/content-type) (mt/text-plain)}}
       {:status  (stc/unauthorized)
-       :headers {(enth/content-type) "text/plain"}}))
+       :headers {(eh/content-type) (mt/text-plain)}}))
+
+(defn get-cookie-by-name
+  "Reurn cookie value by cookie name"
+  [cookies
+   cookie-name
+   cookie-index]
+  (if (< cookie-index (count cookies))
+   (let [[cname value] (cookies cookie-index)]
+    (if (= cookie-name
+           name)
+     (:value value)
+     (recur cookies cookie-name (inc cookie-index))
+     ))
+   nil))
+
 
 (defn get-cookie
   "Read cookie from request"
   [request
    cookie-name]
-  (def return-value nil)
-  (doseq [[name value] (into [] (:cookies request))]
-         (if (= cookie-name
-                name)
-             (def return-value (:value value))
-             nil))
-  return-value)
+  (get-cookie-by-name (into [] (:cookies request))
+                      cookie-name
+                      0))
 
 (def grocery-header
- {:gname {:content "Name"}
-  :calories {:content "Calories"}
-  :fats {:content "Fats"}
-  :proteins {:content "Proteins"}
-  :carbonhydrates {:content "Carbonhydrates"}
-  :origin {:content "Origin"}
-  :option {:colspan 2
-           :content "Option"}})
-
-(def grocery-columns
- [:gname
-  :calories
-  :fats
-  :proteins
-  :carbonhydrates
-  :origin
-  :edit
-  :delete])
+ [;{:gname          {:content "Name"}}
+  {:calories       {:content "Calories"}}
+  {:fats           {:content "Fats"}}
+  ;{:proteins       {:content "Proteins"}}
+  {:carbonhydrates {:content "Carbonhydrates"}}
+  {:water          {:content "Water"}}
+  {:description    {:content "Description"}}
+  {:origin         {:content "Origin"}}
+;  {:option         {:colspan 2
+;                    :content "Option"}}
+   ])
 
 (def groceries
-  (atom [{:gname "Boranija"
-          :calories 1
-          :fats 2
-          :proteins 3
+  (atom [{:gname          "Boranija"
+          :calories       1
+          :fats           2
+          :proteins       3
           :carbonhydrates 4
-          :origin "Vegetarijanski"
-          :edit "<a id=\"edit-boranija\" href=\"#\" >edit</a>"
-          :delete "<a id=\"delete-boranija\" href=\"#\" >delete</a>"}
-         {:gname "Pasulj"
-          :calories 1
-          :fats 2
-          :proteins 3
+          :water          5
+          :description    "boranija description"
+          :origin         "Vegetarian"}
+         {:gname          "Pasulj"
+          :calories       1
+          :fats           2
+          :proteins       3
           :carbonhydrates 4
-          :origin "Vegetarijanski"
-          :edit "<a id=\"edit-pasulj\" href=\"#\" >edit</a>"
-          :delete "<a id=\"delete-pasulj\" href=\"#\" >delete</a>"}
-         {:gname "Krompir"
-          :calories 1
-          :fats 2
-          :proteins 3
+          :water          5
+          :origin         "Vegetarian"}
+         {:gname          "Krompir"
+          :calories       1
+          :fats           2
+          :proteins       3
           :carbonhydrates 4
-          :origin "Vegetarijanski"
-          :edit "<a id=\"edit-krompir\" href=\"#\" >edit</a>"
-          :delete "<a id=\"delete-krompir\" href=\"#\" >delete</a>"}
-         {:gname "Psenica"
-          :calories 1
-          :fats 2
-          :proteins 3
+          :water          5
+          :origin         "Vegetarian"}
+         {:gname          "Psenica"
+          :calories       1
+          :fats           2
+          :proteins       3
           :carbonhydrates 4
-          :origin "Vegetarijanski"
-          :edit "<a id=\"edit-psenica\" href=\"#\" >edit</a>"
-          :delete "<a id=\"delete-psenica\" href=\"#\" >delete</a>"}]))
+          :water          5
+          :origin         "Vegetarian"}]))
 
 (defn grocery-table-data
   ""
   [query-map]
-  (if (= (:search query-map) "all")
+  (if (empty? (:search query-map))
    {:status  (stc/ok)
-    :headers {(enth/content-type) "text/plain"}
+    :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:grocery-header   grocery-header
-                   :grocery-columns  grocery-columns
                    :groceries        @groceries})}
    {:status  (stc/bad-request)
-    :headers {(enth/content-type) "text/plain"}
+    :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:error-message "404 Bad request"})}))
+
+(defn get-grocery
+  ""
+  [grocery-name
+   groceries-index]
+  (if (< groceries-index (count @groceries))
+   (let [db-grocery (@groceries groceries-index)]
+    (if (= grocery-name (:gname db-grocery))
+     db-grocery
+     (recur grocery-name (inc groceries-index))
+     ))
+   nil))
+
+(defn get-grocery-by-name
+  ""
+  [grocery-query]
+  (let [grocery (get-grocery (:gname (:search grocery-query)) 0)]
+   (if grocery
+    {:status (stc/ok)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body   (str {:status  "success"
+                   :grocery grocery})}
+    {:status (stc/not-found)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body   (str {:status  "error"
+                   :grocery nil})}))
+  )
 
 (defn insert-grocery
   ""
   [grocery-map]
   (swap! groceries conj grocery-map))
+
+(defn parse-body
+  ""
+  [body]
+  (read-string (slurp body))
+  )
+
+(defn conj-grocery
+  ""
+  [groceries-param
+   grocery]
+  (let [count-before-remove (count groceries-param)
+        removed-grocery     (into []
+                                  (remove (fn [db-grocery]
+                                              (= (:gname db-grocery)
+                                                 (:gname grocery))
+                                           )
+                                   @groceries))
+        count-after-remove  (count removed-grocery)
+        element-removed     (not= count-before-remove count-after-remove)]
+   (if element-removed
+    (conj removed-grocery grocery)
+    @groceries))
+  )
+
+(defn update-grocery
+  ""
+  [grocery]
+  (try
+   (swap! groceries conj-grocery grocery)
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"})}
+   (catch Exception ex
+    (println (.getMessage ex))
+    {:status  (stc/internal-server-error)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status "error"})}))
+  )
 
 (defroutes app-routes
   (GET "/what-is-my-ip"
@@ -228,9 +287,8 @@
   (POST "/login"
         request
         (println request)
-        (login-authentication (read-string (slurp (:body request))
-                               ))
-   )
+        (login-authentication (parse-body (:body request))
+         ))
   (POST "/am-i-logged-in"
         request
         (println request)
@@ -239,22 +297,29 @@
   (POST "/grocery-table-data"
         request
         (println request)
-        (grocery-table-data (read-string (slurp (:body request))
-                             ))
-   )
+        (grocery-table-data (parse-body (:body request))
+         ))
   (POST "/insert-grocery"
         request
         (println request)
-        (insert-grocery (read-string (slurp (:body request))
-                             ))
-   )
+        (insert-grocery (parse-body (:body request))
+         ))
+  (POST "/get-grocery-by-name"
+        request
+        (println request)
+        (get-grocery-by-name (parse-body (:body request))
+         ))
+  (POST "/update-grocery"
+        request
+        (println request)
+        (update-grocery (parse-body (:body request))
+         ))
   (route/resources "/")
   (route/not-found (hello-world "hi"))
 ; (POST "*"
 ;  request
 ;  (println request)
-;  (hello-world "hi")
-;  )
+;  (hello-world "hi"))
   )
 
 (def handler (-> (chandler/site
