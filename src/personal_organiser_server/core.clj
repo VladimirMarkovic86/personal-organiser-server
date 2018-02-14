@@ -54,7 +54,9 @@
          same-password  (= (:password db-user) (:password entity-map))]
         (if same-email
             (if same-password
-                (swap! result conj {:status "success"})
+                (swap! result conj {:status   "success"
+                                    :email    "success"
+                                    :password "success"})
                 (swap! result conj {:email "success"}))
             (recur (inc itr) entity-map result))
     )
@@ -112,7 +114,7 @@
   (if (< cookie-index (count cookies))
    (let [[cname value] (cookies cookie-index)]
     (if (= cookie-name
-           name)
+           cname)
      (:value value)
      (recur cookies cookie-name (inc cookie-index))
      ))
@@ -126,19 +128,6 @@
   (get-cookie-by-name (into [] (:cookies request))
                       cookie-name
                       0))
-
-(def grocery-header
- [;{:gname          {:content "Name"}}
-  {:calories       {:content "Calories"}}
-  {:fats           {:content "Fats"}}
-  ;{:proteins       {:content "Proteins"}}
-  {:carbonhydrates {:content "Carbonhydrates"}}
-  {:water          {:content "Water"}}
-  {:description    {:content "Description"}}
-  {:origin         {:content "Origin"}}
-;  {:option         {:colspan 2
-;                    :content "Option"}}
-   ])
 
 (def groceries
   (atom [{:gname          "Boranija"
@@ -171,14 +160,36 @@
           :water          5
           :origin         "Vegetarian"}]))
 
+(defn project-grocery
+  ""
+  [grocery
+   projection]
+  (let [single-result (atom {})]
+   (doseq [pkey projection]
+    (swap! single-result conj {pkey (pkey grocery)}))
+   @single-result))
+
+(defn query-groceries
+  ""
+  [query-map]
+  (let [query         (:query query-map)
+        projection    (:projection query-map)
+        qsort         (:qsort query-map)
+        final-result  (atom [])]
+   (doseq [grocery @groceries]
+    (if (= projection [])
+     (swap! final-result conj grocery)
+     (swap! final-result conj (project-grocery grocery projection))
+     ))
+   @final-result))
+
 (defn grocery-table-data
   ""
   [query-map]
   (if (empty? (:search query-map))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:grocery-header   grocery-header
-                   :groceries        @groceries})}
+    :body    (str {:groceries (query-groceries query-map)})}
    {:status  (stc/bad-request)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:error-message "404 Bad request"})}))
