@@ -160,13 +160,19 @@
           :water          5
           :origin         "Vegetarian"}]))
 
+(defn grocery-to-vector
+  ""
+  [grocery]
+  (vec (vals grocery))
+  )
+
 (defn project-grocery
   ""
   [grocery
    projection]
-  (let [single-result (atom {})]
+  (let [single-result (atom [])]
    (doseq [pkey projection]
-    (swap! single-result conj {pkey (pkey grocery)}))
+    (swap! single-result conj (pkey grocery)))
    @single-result))
 
 (defn query-groceries
@@ -178,21 +184,24 @@
         final-result  (atom [])]
    (doseq [grocery @groceries]
     (if (= projection [])
-     (swap! final-result conj grocery)
-     (swap! final-result conj (project-grocery grocery projection))
+     (swap! final-result conj (grocery-to-vector grocery))
+     (swap! final-result conj (project-grocery grocery
+                                               projection))
      ))
    @final-result))
 
 (defn grocery-table-data
   ""
   [query-map]
-  (if (empty? (:search query-map))
+  (if (empty? (:query query-map))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:groceries (query-groceries query-map)})}
+    :body    (str {:status  "success"
+                   :data (query-groceries query-map)})}
    {:status  (stc/bad-request)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:error-message "404 Bad request"})}))
+    :body    (str {:status  "error"
+                   :error-message "404 Bad request"})}))
 
 (defn get-grocery
   ""
@@ -209,16 +218,16 @@
 (defn get-grocery-by-name
   ""
   [grocery-query]
-  (let [grocery (get-grocery (:gname (:search grocery-query)) 0)]
+  (let [grocery (get-grocery (:gname (:query grocery-query)) 0)]
    (if grocery
     {:status (stc/ok)
      :headers {(eh/content-type) (mt/text-plain)}
      :body   (str {:status  "success"
-                   :grocery grocery})}
+                   :data grocery})}
     {:status (stc/not-found)
      :headers {(eh/content-type) (mt/text-plain)}
      :body   (str {:status  "error"
-                   :grocery nil})}))
+                   :error-message "There is no grocery, for given criteria."})}))
   )
 
 (defn insert-grocery
@@ -242,19 +251,19 @@
                                               (= (:gname db-grocery)
                                                  (:gname grocery))
                                            )
-                                   @groceries))
+                                   groceries-param))
         count-after-remove  (count removed-grocery)
         element-removed     (not= count-before-remove count-after-remove)]
    (if element-removed
     (conj removed-grocery grocery)
-    @groceries))
-  )
+    (conj groceries-param grocery))
+   ))
 
 (defn update-grocery
   ""
-  [grocery]
+  [request-body]
   (try
-   (swap! groceries conj-grocery grocery)
+   (swap! groceries conj-grocery (:entity request-body))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -264,6 +273,14 @@
      :headers {(eh/content-type) (mt/text-plain)}
      :body    (str {:status "error"})}))
   )
+
+(defn not-found
+  ""
+  []
+  {:status  (stc/not-found)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status  "error"
+                  :error-message "404 not found"})})
 
 (defroutes app-routes
   (GET "/what-is-my-ip"
@@ -305,7 +322,7 @@
         (println request)
         (am-i-logged-in (get-cookie request "session"))
    )
-  (POST "/grocery-table-data"
+  (POST "/get-entities"
         request
         (println request)
         (grocery-table-data (parse-body (:body request))
@@ -315,18 +332,23 @@
         (println request)
         (insert-grocery (parse-body (:body request))
          ))
-  (POST "/get-grocery-by-name"
+  (POST "/get-entity"
         request
         (println request)
         (get-grocery-by-name (parse-body (:body request))
          ))
-  (POST "/update-grocery"
+  (POST "/update-entity"
+        request
+        (println request)
+        (update-grocery (parse-body (:body request))
+         ))
+  (POST "/insert-entity"
         request
         (println request)
         (update-grocery (parse-body (:body request))
          ))
   (route/resources "/")
-  (route/not-found (hello-world "hi"))
+  (route/not-found (not-found))
 ; (POST "*"
 ;  request
 ;  (println request)
