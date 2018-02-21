@@ -1,5 +1,5 @@
 (ns personal-organiser-server.core
- (:use [compojure.core :only [defroutes GET POST OPTIONS]]
+ (:use [compojure.core :only [defroutes GET POST DELETE OPTIONS]]
        [clojure.data   :only [diff]])
  (:require
       [compojure.handler                              :as chandler]
@@ -175,29 +175,84 @@
     (swap! single-result conj (pkey grocery)))
    @single-result))
 
+(defn grocery-page-result
+  ""
+  [groceries-param
+   current-index
+   rows
+   result
+   convert-fn]
+  (if (and (< 0 rows)
+           (< current-index (count groceries-param))
+       )
+   (do (swap! result conj (convert-fn (groceries-param current-index))
+        )
+       (recur groceries-param
+              (inc current-index)
+              (dec rows)
+              result
+              convert-fn))
+   @result))
+
 (defn query-groceries
   ""
   [query-map]
   (let [query         (:query query-map)
         projection    (:projection query-map)
         qsort         (:qsort query-map)
+        pagination    (:pagination query-map)
+        current-page  (:current-page query-map)
+        rows          (:rows query-map)
         final-result  (atom [])]
-   (doseq [grocery @groceries]
-    (if (= projection [])
-     (swap! final-result conj (grocery-to-vector grocery))
-     (swap! final-result conj (project-grocery grocery
-                                               projection))
-     ))
+   (if pagination
+    (grocery-page-result @groceries
+                         (* current-page rows)
+                         rows
+                         final-result
+                         (if (= projection [])
+                             (fn [grocery] (grocery-to-vector grocery))
+                             (fn [grocery] (project-grocery grocery
+                                                            projection))
+                          ))
+    (doseq [grocery @groceries]
+     (if (= projection [])
+      (swap! final-result conj (grocery-to-vector grocery))
+      (swap! final-result conj (project-grocery grocery
+                                                projection))
+      ))
+    )
    @final-result))
+
+(defn- round-up
+  [number1 number2]
+  (if (= 0 (mod number1 number2))
+   (int (/ number1 number2))
+   (inc (int (/ number1 number2))
+    ))
+  )
 
 (defn grocery-table-data
   ""
   [query-map]
   (if (empty? (:query query-map))
-   {:status  (stc/ok)
-    :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status  "success"
-                   :data (query-groceries query-map)})}
+   (let [current-page     (:current-page query-map)
+         rows             (:rows query-map)
+         number-of-pages  (round-up (count @groceries) rows)
+         current-page     (if (= current-page number-of-pages)
+                           (dec current-page)
+                           current-page)
+         data             (if (not= -1 current-page)
+                           (query-groceries (assoc query-map
+                                                   :current-page current-page))
+                           [])]
+    {:status  (stc/ok)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status  "success"
+                    :data       data
+                    :pagination {:current-page     current-page
+                                 :rows             rows
+                                 :total-row-count  (count @groceries)}
+                    })})
    {:status  (stc/bad-request)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status  "error"
@@ -230,15 +285,22 @@
                    :error-message "There is no grocery, for given criteria."})}))
   )
 
-(defn insert-grocery
-  ""
-  [grocery-map]
-  (swap! groceries conj grocery-map))
-
 (defn parse-body
   ""
   [body]
   (read-string (slurp body))
+  )
+
+(defn remove-grocery
+  ""
+  [groceries-param
+   grocery]
+  (into []
+        (remove (fn [db-grocery]
+                    (= (:gname db-grocery)
+                       (:gname grocery))
+                 )
+         groceries-param))
   )
 
 (defn conj-grocery
@@ -246,12 +308,8 @@
   [groceries-param
    grocery]
   (let [count-before-remove (count groceries-param)
-        removed-grocery     (into []
-                                  (remove (fn [db-grocery]
-                                              (= (:gname db-grocery)
-                                                 (:gname grocery))
-                                           )
-                                   groceries-param))
+        removed-grocery     (remove-grocery groceries-param
+                                            grocery)
         count-after-remove  (count removed-grocery)
         element-removed     (not= count-before-remove count-after-remove)]
    (if element-removed
@@ -264,6 +322,21 @@
   [request-body]
   (try
    (swap! groceries conj-grocery (:entity request-body))
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"})}
+   (catch Exception ex
+    (println (.getMessage ex))
+    {:status  (stc/internal-server-error)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status "error"})}))
+  )
+
+(defn delete-grocery
+  ""
+  [request-body]
+  (try
+   (swap! groceries remove-grocery (:query request-body))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -327,11 +400,6 @@
         (println request)
         (grocery-table-data (parse-body (:body request))
          ))
-  (POST "/insert-grocery"
-        request
-        (println request)
-        (insert-grocery (parse-body (:body request))
-         ))
   (POST "/get-entity"
         request
         (println request)
@@ -346,6 +414,11 @@
         request
         (println request)
         (update-grocery (parse-body (:body request))
+         ))
+  (DELETE "/delete-entity"
+        request
+        (println request)
+        (delete-grocery (parse-body (:body request))
          ))
   (route/resources "/")
   (route/not-found (not-found))
@@ -363,7 +436,7 @@
                                                     #"https://127.0.0.1:8443"
                                                     #"http://127.0.0.1:8445"
                                                     #"http://localhost:3449"]
-                   :access-control-allow-methods   [:get :post]
+                   :access-control-allow-methods   [:get :post :delete]
                    ;:access-control-allow-credentials  "true"
                    ))
                ))
