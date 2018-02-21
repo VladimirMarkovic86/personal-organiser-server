@@ -12,20 +12,22 @@
       [personal-organiser-server.http.status-code     :as stc]))
 
 (defn hello-world
-  ""
+  "Function for testing success"
   [param]
   {:status  (stc/ok)
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str "Hello World " param)})
 
 (defn hello-world-error
-  ""
+  "Function for testing error"
   [param]
   {:status  (stc/bad-request)
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str "Hello World " param)})
    
-(defn what-is-my-ip [remote-addr]
+(defn what-is-my-ip
+  "Return ip address of this server"
+  [remote-addr]
   {:status  (stc/ok)
    :headers {(eh/content-type) (mt/text-plain)}
    :body    remote-addr})
@@ -161,22 +163,23 @@
           :origin         "Vegetarian"}]))
 
 (defn grocery-to-vector
-  ""
+  "Grocery as map converted to vector of values"
   [grocery]
   (vec (vals grocery))
   )
 
 (defn project-grocery
-  ""
+  "Grocery as map converted to vector of values for particular keys"
   [grocery
    projection]
   (let [single-result (atom [])]
    (doseq [pkey projection]
-    (swap! single-result conj (pkey grocery)))
+    (swap! single-result conj (pkey grocery))
+    )
    @single-result))
 
 (defn grocery-page-result
-  ""
+  "Read groceries for current page"
   [groceries-param
    current-index
    rows
@@ -195,7 +198,7 @@
    @result))
 
 (defn query-groceries
-  ""
+  "Read groceries from atom, all of them if pagination is off"
   [query-map]
   (let [query         (:query query-map)
         projection    (:projection query-map)
@@ -232,7 +235,7 @@
   )
 
 (defn grocery-table-data
-  ""
+  "Prepare data for table"
   [query-map]
   (if (empty? (:query query-map))
    (let [current-page     (:current-page query-map)
@@ -259,7 +262,7 @@
                    :error-message "404 Bad request"})}))
 
 (defn get-grocery
-  ""
+  "Read grocery from atom by it :gname key"
   [grocery-name
    groceries-index]
   (if (< groceries-index (count @groceries))
@@ -271,7 +274,7 @@
    nil))
 
 (defn get-grocery-by-name
-  ""
+  "Prepare requested grocery for response"
   [grocery-query]
   (let [grocery (get-grocery (:gname (:query grocery-query)) 0)]
    (if grocery
@@ -286,13 +289,13 @@
   )
 
 (defn parse-body
-  ""
+  "Read entity-body from request, convert from string to clojure data"
   [body]
   (read-string (slurp body))
   )
 
 (defn remove-grocery
-  ""
+  "Remove grocery from atom by :gname key"
   [groceries-param
    grocery]
   (into []
@@ -304,7 +307,7 @@
   )
 
 (defn conj-grocery
-  ""
+  "Update or insert grocery in atom"
   [groceries-param
    grocery]
   (let [count-before-remove (count groceries-param)
@@ -318,7 +321,7 @@
    ))
 
 (defn update-grocery
-  ""
+  "Update grocery"
   [request-body]
   (try
    (swap! groceries conj-grocery (:entity request-body))
@@ -333,7 +336,7 @@
   )
 
 (defn delete-grocery
-  ""
+  "Delete grocery"
   [request-body]
   (try
    (swap! groceries remove-grocery (:query request-body))
@@ -348,7 +351,7 @@
   )
 
 (defn not-found
-  ""
+  "Requested action not found"
   []
   {:status  (stc/not-found)
    :headers {(eh/content-type) (mt/text-plain)}
