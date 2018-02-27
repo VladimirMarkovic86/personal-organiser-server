@@ -7,6 +7,8 @@
       [ring.adapter.jetty                             :refer [run-jetty]]
       [personal-organiser-server.ring.middleware.cors :refer [wrap-cors]]
       [personal-organiser-server.http.entity-header   :as eh]
+      [personal-organiser-server.utils                :as utils]
+      [personal-organiser-server.mongo                :as mon]
       [personal-organiser-server.http.response-header :as rsh]
       [personal-organiser-server.http.mime-type       :as mt]
       [personal-organiser-server.http.status-code     :as stc]))
@@ -131,200 +133,85 @@
                       cookie-name
                       0))
 
-(def groceries
-  (atom [{:gname          "Boranija"
-          :calories       1
-          :fats           2
-          :proteins       3
-          :carbonhydrates 4
-          :water          5
-          :description    "boranija description"
-          :origin         "Vegetarian"}
-         {:gname          "Pasulj"
-          :calories       1
-          :fats           2
-          :proteins       3
-          :carbonhydrates 4
-          :water          5
-          :origin         "Vegetarian"}
-         {:gname          "Krompir"
-          :calories       1
-          :fats           2
-          :proteins       3
-          :carbonhydrates 4
-          :water          5
-          :origin         "Vegetarian"}
-         {:gname          "Psenica"
-          :calories       1
-          :fats           2
-          :proteins       3
-          :carbonhydrates 4
-          :water          5
-          :origin         "Vegetarian"}]))
-
-(defn grocery-to-vector
-  "Grocery as map converted to vector of values"
-  [grocery]
-  (vec (vals grocery))
-  )
-
-(defn project-grocery
-  "Grocery as map converted to vector of values for particular keys"
-  [grocery
-   projection]
-  (let [single-result (atom [])]
-   (doseq [pkey projection]
-    (swap! single-result conj (pkey grocery))
-    )
-   @single-result))
-
-(defn grocery-page-result
-  "Read groceries for current page"
-  [groceries-param
-   current-index
-   rows
-   result
-   convert-fn]
-  (if (and (< 0 rows)
-           (< current-index (count groceries-param))
-       )
-   (do (swap! result conj (convert-fn (groceries-param current-index))
-        )
-       (recur groceries-param
-              (inc current-index)
-              (dec rows)
-              result
-              convert-fn))
-   @result))
-
-(defn query-groceries
-  "Read groceries from atom, all of them if pagination is off"
-  [query-map]
-  (let [query         (:query query-map)
-        projection    (:projection query-map)
-        qsort         (:qsort query-map)
-        pagination    (:pagination query-map)
-        current-page  (:current-page query-map)
-        rows          (:rows query-map)
-        final-result  (atom [])]
-   (if pagination
-    (grocery-page-result @groceries
-                         (* current-page rows)
-                         rows
-                         final-result
-                         (if (= projection [])
-                             (fn [grocery] (grocery-to-vector grocery))
-                             (fn [grocery] (project-grocery grocery
-                                                            projection))
-                          ))
-    (doseq [grocery @groceries]
-     (if (= projection [])
-      (swap! final-result conj (grocery-to-vector grocery))
-      (swap! final-result conj (project-grocery grocery
-                                                projection))
-      ))
-    )
-   @final-result))
-
-(defn- round-up
-  [number1 number2]
-  (if (= 0 (mod number1 number2))
-   (int (/ number1 number2))
-   (inc (int (/ number1 number2))
-    ))
-  )
-
-(defn grocery-table-data
+(defn get-entities
   "Prepare data for table"
-  [query-map]
-  (if (empty? (:query query-map))
-   (let [current-page     (:current-page query-map)
-         rows             (:rows query-map)
-         number-of-pages  (round-up (count @groceries) rows)
+  [request-body]
+  (if (empty? (:entity-filter request-body))
+   (let [current-page     (:current-page request-body)
+         rows             (:rows request-body)
+         count-entities   (mon/coll-count
+                           (:entity-type request-body)
+                           (:entity-filter request-body))
+         number-of-pages  (utils/round-up count-entities rows)
          current-page     (if (= current-page number-of-pages)
                            (dec current-page)
                            current-page)
-         data             (if (not= -1 current-page)
-                           (query-groceries (assoc query-map
-                                                   :current-page current-page))
-                           [])]
+         entity-type    (:entity-type request-body)
+         entity-filter  (:entity-filter request-body)
+         projection     (:projection request-body)
+         qsort          (:qsort request-body)
+         final-result   (atom [])
+         db-result      (mon/find-by-filter-projection-sort-and-limit
+                         entity-type
+                         entity-filter
+                         projection
+                         qsort
+                         rows
+                         (* current-page
+                            rows))]
+    (if (not= -1 current-page)
+     (doseq [single-result db-result]
+      (let [_id  (:_id single-result)
+            _id-as-str  (str _id)
+            ekeys  (keys single-result)
+            entity-as-vector  (atom [])]
+       (doseq [ekey ekeys]
+        (if (= ekey :_id)
+         (swap! entity-as-vector conj _id-as-str)
+         (swap! entity-as-vector conj (ekey single-result))
+         ))
+       (swap! final-result conj @entity-as-vector))
+      )
+     nil)
     {:status  (stc/ok)
      :headers {(eh/content-type) (mt/text-plain)}
      :body    (str {:status  "success"
-                    :data       data
+                    :data       @final-result
                     :pagination {:current-page     current-page
                                  :rows             rows
-                                 :total-row-count  (count @groceries)}
+                                 :total-row-count  count-entities}
                     })})
    {:status  (stc/bad-request)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status  "error"
                    :error-message "404 Bad request"})}))
 
-(defn get-grocery
-  "Read grocery from atom by it :gname key"
-  [grocery-name
-   groceries-index]
-  (if (< groceries-index (count @groceries))
-   (let [db-grocery (@groceries groceries-index)]
-    (if (= grocery-name (:gname db-grocery))
-     db-grocery
-     (recur grocery-name (inc groceries-index))
-     ))
-   nil))
-
-(defn get-grocery-by-name
+(defn get-entity
   "Prepare requested grocery for response"
-  [grocery-query]
-  (let [grocery (get-grocery (:gname (:query grocery-query)) 0)]
-   (if grocery
+  [request-body]
+  (let [entity  (mon/find-by-id (:entity-type request-body)
+                                (:_id (:entity-filter request-body))
+                 )
+        entity  (assoc entity :_id (str (:_id entity))
+                 )]
+   (if entity
     {:status (stc/ok)
      :headers {(eh/content-type) (mt/text-plain)}
      :body   (str {:status  "success"
-                   :data grocery})}
+                   :data  entity})}
     {:status (stc/not-found)
      :headers {(eh/content-type) (mt/text-plain)}
      :body   (str {:status  "error"
                    :error-message "There is no grocery, for given criteria."})}))
   )
 
-(defn parse-body
-  "Read entity-body from request, convert from string to clojure data"
-  [body]
-  (read-string (slurp body))
-  )
-
-(defn remove-grocery
-  "Remove grocery from atom by :gname key"
-  [groceries-param
-   grocery]
-  (into []
-        (remove (fn [db-grocery]
-                    (= (:gname db-grocery)
-                       (:gname grocery))
-                 )
-         groceries-param))
-  )
-
-(defn conj-grocery
-  "Update or insert grocery in atom"
-  [groceries-param
-   grocery]
-  (let [count-before-remove (count groceries-param)
-        removed-grocery     (remove-grocery groceries-param
-                                            grocery)
-        count-after-remove  (count removed-grocery)
-        element-removed     (not= count-before-remove count-after-remove)]
-   (if element-removed
-    (conj removed-grocery grocery)
-    (conj groceries-param grocery))
-   ))
-
-(defn update-grocery
+(defn update-entity
   "Update grocery"
   [request-body]
   (try
-   (swap! groceries conj-grocery (:entity request-body))
+   (mon/update-by-id (:entity-type request-body)
+                     (:_id request-body)
+                     (:entity request-body))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -335,11 +222,29 @@
      :body    (str {:status "error"})}))
   )
 
-(defn delete-grocery
-  "Delete grocery"
+(defn insert-entity
+  "Update grocery"
   [request-body]
   (try
-   (swap! groceries remove-grocery (:query request-body))
+   (mon/insert-and-return (:entity-type request-body)
+                          (:entity request-body))
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"})}
+   (catch Exception ex
+    (println (.getMessage ex))
+    {:status  (stc/internal-server-error)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status "error"})}))
+  )
+
+(defn delete-entity
+  "Delete entity"
+  [request-body]
+  (try
+   (mon/remove-by-id (:entity-type request-body)
+                     (:_id (:entity-filter request-body))
+    )
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -357,6 +262,12 @@
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str {:status  "error"
                   :error-message "404 not found"})})
+
+(defn parse-body
+  "Read entity-body from request, convert from string to clojure data"
+  [request]
+  (read-string (slurp (:body request))
+   ))
 
 (defroutes app-routes
   (GET "/what-is-my-ip"
@@ -391,8 +302,8 @@
   (POST "/login"
         request
         (println request)
-        (login-authentication (parse-body (:body request))
-         ))
+        (login-authentication (parse-body request))
+   )
   (POST "/am-i-logged-in"
         request
         (println request)
@@ -401,28 +312,28 @@
   (POST "/get-entities"
         request
         (println request)
-        (grocery-table-data (parse-body (:body request))
-         ))
+        (get-entities (parse-body request))
+   )
   (POST "/get-entity"
         request
         (println request)
-        (get-grocery-by-name (parse-body (:body request))
-         ))
+        (get-entity (parse-body request))
+   )
   (POST "/update-entity"
         request
         (println request)
-        (update-grocery (parse-body (:body request))
-         ))
+        (update-entity (parse-body request))
+   )
   (POST "/insert-entity"
         request
         (println request)
-        (update-grocery (parse-body (:body request))
-         ))
+        (insert-entity (parse-body request))
+   )
   (DELETE "/delete-entity"
         request
         (println request)
-        (delete-grocery (parse-body (:body request))
-         ))
+        (delete-entity (parse-body request))
+   )
   (route/resources "/")
   (route/not-found (not-found))
 ; (POST "*"
@@ -454,6 +365,7 @@
        (println "Server instance exists")
        (try
         (.start @server)
+        (mon/connect-mongo)
         (catch Exception ex
                (println (.getMessage ex))
          ))
@@ -462,6 +374,7 @@
        (println "Server instance does not exist")
        (try
         (reset! server (run-jetty handler { :port 1612 :join? false}))
+        (mon/connect-mongo)
         (catch Exception ex
                (println ex))
         ))
@@ -475,6 +388,7 @@
     (println "Server stopping")
     (try
      (.stop @server)
+     (mon/disconnect-mongo)
      (println "Server stopped")
      (catch Exception ex
             (println ex))
