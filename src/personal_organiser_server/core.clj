@@ -133,13 +133,22 @@
                       cookie-name
                       0))
 
+(defn build-projection
+  ""
+  [vector-fields
+   include]
+  (let [projection  (atom {})]
+   (doseq [field vector-fields]
+    (swap! projection assoc field include))
+   @projection))
+
 (defn get-entities
   "Prepare data for table"
   [request-body]
   (if (empty? (:entity-filter request-body))
    (let [current-page     (:current-page request-body)
          rows             (:rows request-body)
-         count-entities   (mon/coll-count
+         count-entities   (mon/mongodb-count
                            (:entity-type request-body)
                            (:entity-filter request-body))
          number-of-pages  (utils/round-up count-entities rows)
@@ -148,28 +157,32 @@
                            current-page)
          entity-type    (:entity-type request-body)
          entity-filter  (:entity-filter request-body)
-         projection     (:projection request-body)
+         projection-vector  (:projection request-body)
+         projection-include  (:projection-include request-body)
+         projection     (build-projection projection-vector
+                                          projection-include)
          qsort          (:qsort request-body)
+         collation      (:collation request-body)
          final-result   (atom [])
-         db-result      (mon/find-by-filter-projection-sort-and-limit
+         db-result      (mon/mongodb-find
                          entity-type
                          entity-filter
                          projection
                          qsort
                          rows
                          (* current-page
-                            rows))]
+                            rows)
+                         collation)]
     (if (not= -1 current-page)
      (doseq [single-result db-result]
-      (let [_id  (:_id single-result)
-            _id-as-str  (str _id)
-            ekeys  (keys single-result)
+      (let [ekeys  (if projection-include
+                    projection-vector
+                    (keys single-result))
             entity-as-vector  (atom [])]
+       (swap! entity-as-vector conj (:_id single-result))
        (doseq [ekey ekeys]
-        (if (= ekey :_id)
-         (swap! entity-as-vector conj _id-as-str)
-         (swap! entity-as-vector conj (ekey single-result))
-         ))
+        (swap! entity-as-vector conj (ekey single-result))
+        )
        (swap! final-result conj @entity-as-vector))
       )
      nil)
@@ -189,8 +202,8 @@
 (defn get-entity
   "Prepare requested grocery for response"
   [request-body]
-  (let [entity  (mon/find-by-id (:entity-type request-body)
-                                (:_id (:entity-filter request-body))
+  (let [entity  (mon/mongodb-find-by-id (:entity-type request-body)
+                                        (:_id (:entity-filter request-body))
                  )
         entity  (assoc entity :_id (str (:_id entity))
                  )]
@@ -209,9 +222,9 @@
   "Update grocery"
   [request-body]
   (try
-   (mon/update-by-id (:entity-type request-body)
-                     (:_id request-body)
-                     (:entity request-body))
+   (mon/mongodb-update-by-id (:entity-type request-body)
+                             (:_id request-body)
+                             (:entity request-body))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -226,8 +239,8 @@
   "Update grocery"
   [request-body]
   (try
-   (mon/insert-and-return (:entity-type request-body)
-                          (:entity request-body))
+   (mon/mongodb-insert-one (:entity-type request-body)
+                           (:entity request-body))
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -242,8 +255,8 @@
   "Delete entity"
   [request-body]
   (try
-   (mon/remove-by-id (:entity-type request-body)
-                     (:_id (:entity-filter request-body))
+   (mon/mongodb-delete-by-id (:entity-type request-body)
+                             (:_id (:entity-filter request-body))
     )
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
@@ -365,7 +378,7 @@
        (println "Server instance exists")
        (try
         (.start @server)
-        (mon/connect-mongo)
+        (mon/mongodb-connect)
         (catch Exception ex
                (println (.getMessage ex))
          ))
@@ -374,7 +387,7 @@
        (println "Server instance does not exist")
        (try
         (reset! server (run-jetty handler { :port 1612 :join? false}))
-        (mon/connect-mongo)
+        (mon/mongodb-connect)
         (catch Exception ex
                (println ex))
         ))
@@ -388,7 +401,7 @@
     (println "Server stopping")
     (try
      (.stop @server)
-     (mon/disconnect-mongo)
+     (mon/mongodb-disconnect)
      (println "Server stopped")
      (catch Exception ex
             (println ex))

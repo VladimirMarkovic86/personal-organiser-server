@@ -1,11 +1,12 @@
 (ns personal-organiser-server.mongo
-  "Namespace for manipulating data from mongo database"
-  (:require [monger.core        :as mg]
-            [monger.credentials :as mcr]
-            [monger.collection  :as mcoll]
-            [monger.query        :as q]
-            [monger.operators   :refer :all])
-  (:import org.bson.types.ObjectId))
+  (:import [com.mongodb MongoClient
+                        MongoCredential
+                        MongoClientOptions
+                        ServerAddress]
+           [com.mongodb.client.model Collation
+                                     CollationCaseFirst]
+           [org.bson Document]
+           [org.bson.types ObjectId]))
 
 (def personal-organiser-db "personal-organiser-db")
 
@@ -23,132 +24,228 @@
 
 (def db (atom nil))
 
-(defn connect-mongo
+(defn mongodb-connect
   "Connect to mongo db"
   []
   (let [admin-db "admin"
         username "admin"
-        password "passw0rd"
-        cred (mcr/create username
-                         admin-db
-                         password)
+        password (char-array "passw0rd")
+        cred (MongoCredential/createCredential username
+                                               admin-db
+                                               password)
         host "127.0.0.1"
         port 27017]
     (swap! conn
            (fn [conn-input]
-            (mg/connect-with-credentials host
-                                         port
-                                         cred))
-         )
+            (MongoClient. (ServerAddress. host
+                                        port)
+                          cred
+                          (.build (MongoClientOptions/builder))
+             ))
+     )
     (swap! db
            (fn [db-input]
-            (mg/get-db @conn
-                       personal-organiser-db))
+            (.getDatabase @conn
+                          personal-organiser-db))
      ))
   )
 
-(defn disconnect-mongo
-  "Disconnect from mongo db"
+(defn mongodb-disconnect
+  ""
   []
-  (mg/disconnect @conn))
+  (.close @conn))
 
-(defn find-by-filter
-  "Find documents from collection by filter"
-  [collection-name
-   entity-filter]
-  (mcoll/find-maps
-   @db
-   collection-name
-   entity-filter))
+(defn get-collection
+  ""
+  [db
+   collection-name]
+  (.getCollection @db
+                  collection-name))
 
-(defn find-one
-  "Find document from collection by filter"
-  [collection-name
-   entity-filter]
-  (mcoll/find-one-as-map
-   @db
-   collection-name
-   entity-filter))
-
-(defn find-by-id
-  "Find documents from collection by id"
-  [collection-name
-   id]
-  (mcoll/find-map-by-id
-   @db
-   collection-name
-   (ObjectId. id))
+(defn build-document
+  ""
+  [clj-map]
+  (let [result  (Document.)]
+   (reduce (fn [acc [c-key
+                     c-value]]
+            (.append result (name c-key)
+                            (if (map? c-value)
+                             (build-document c-value)
+                             c-value))
+            )
+           result
+           clj-map))
   )
 
-(defn find-all-from-list
-  "Find documents from collection by id list"
-  [collection-name
-   document-id-list]
-  (def return-docs [])
-  (doseq [document-with-id document-id-list]
-    (let [document-from-db (find-by-id collection-name (:id document-with-id))]
-      (def return-docs
-           (conj return-docs
-                 (conj document-from-db
-                       document-with-id))
-       ))
-   )
-  return-docs)
+(defn build-collation
+  ""
+  [collation-map]
+  (let [collation-builder (Collation/builder)]
+   (if (contains? collation-map :locale)
+    (.locale collation-builder (:locale collation-map))
+    (.locale collation-builder "en_US"))
+   (if (contains? collation-map :case-first)
+    (.collationCaseFirst collation-builder (case (clojure.string/lower-case
+                                                  (:case-first collation-map))
+                                            "upper" (CollationCaseFirst/UPPER)
+                                            "lower" (CollationCaseFirst/LOWER)
+                                            (CollationCaseFirst/OFF))
+     )
+    nil)
+   (.build collation-builder))
+  )
 
-(defn insert-and-return
-  "Insert document into collection and return it"
-  [collection-name
+(defn mongodb-find
+  ""
+  [collection
+   & [filter-map
+      projection-map
+      sort-map
+      limit
+      skip
+      collation]]
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)
+        filter-doc  (build-document filter-map)
+        projection-doc  (build-document projection-map)
+        sort-doc  (build-document sort-map)
+        limit  (or limit 0)
+        skip  (or skip 0)
+        collation-obj  (build-collation collation)
+        itr-result  (.iterator (-> (.find collection filter-doc)
+                                   (.projection projection-doc)
+                                   (.sort sort-doc)
+                                   (.limit limit)
+                                   (.skip skip)
+                                   (.collation collation-obj)
+                                ))
+        result-all  (atom [])
+        result-single  (atom {})]
+   (while (.hasNext itr-result)
+    (let [data (.next itr-result)]
+     (doseq [e-key (vec (.keySet data))]
+      (swap! result-single assoc (keyword e-key) (if (= e-key "_id")
+                                                  (str (.get data (str e-key))
+                                                   )
+                                                  (.get data (str e-key))
+                                                  ))
+      )
+     (swap! result-all conj @result-single)
+     (reset! result-single {}))
+    )
+   @result-all))
+
+;(mongodb-find "grocery"
+;              {:gname true
+;               :fats true
+;               :calories true}
+;              {:gname 1
+;               :fats -1
+;               :calories 1}
+;              3
+;              0
+;              {:locale "en_US"
+;               :case-first "upper"})
+
+(defn mongodb-find-one
+  ""
+  [collection
+   & [filter-map
+      projection-map]]
+  (first (mongodb-find collection
+                       filter-map
+                       projection-map
+                       nil
+                       1))
+  )
+
+(defn mongodb-find-by-id
+  ""
+  [collection
+   _id]
+  (first (mongodb-find collection
+                       {:_id (ObjectId. _id)}
+                       nil
+                       nil
+                       1))
+  )
+
+(defn mongodb-insert-one
+  ""
+  [collection
    insert-document]
-  (mcoll/insert-and-return
-   @db
-   collection-name
-   insert-document))
-
-(defn update-by-id
-  "Update document into collection by id"
-  [collection-name
-   id
-   update-document]
-  (mcoll/update-by-id
-   @db
-   collection-name
-   (ObjectId. id)
-   {$set update-document}))
-
-(defn remove-by-id
-  "Remove document from collection by id"
-  [collection-name
-   id]
-  (mcoll/remove-by-id
-   @db
-   collection-name
-   (ObjectId. id))
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)]
+   (.insertOne collection (build-document insert-document)))
   )
 
-(defn find-by-filter-projection-sort-and-limit
-  "Find entities by filter, projection, sort and limit"
-  [coll-name
-   entity-filter
-   entity-fields
-   sort-array-map
-   result-limit
-   skip]
-  (vec (q/with-collection
-        @db
-        coll-name
-        (q/find entity-filter)
-        (q/fields entity-fields)
-        (q/sort sort-array-map)
-        (q/limit result-limit)
-        (q/skip skip))
+(defn mongodb-insert-many
+  ""
+  [collection
+   insert-documents-vector]
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)
+        list-obj  (java.util.ArrayList.)]
+   (doseq [insert-document insert-documents-vector]
+    (.add list-obj (build-document insert-document))
+    )
+   (.insertMany collection list-obj))
+  )
+
+(defn mongodb-update-by-id
+  ""
+  [collection
+   _id
+   update-document]
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)]
+   (.updateOne collection (build-document {:_id (ObjectId. _id)})
+                          (build-document {:$set update-document}))
    ))
 
-(defn coll-count
-  "Count records in collection for particular filter"
-  [coll-name
-   entity-filter]
-  (mcoll/count
-   @db
-   coll-name
-   entity-filter))
+(defn mongodb-delete-by-id
+  ""
+  [collection
+   _id]
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)]
+   (.deleteOne collection (build-document {:_id (ObjectId. _id)}))
+   ))
+
+(defn mongodb-count
+  ""
+  [collection
+   & [entity-filter]]
+  (let [collection  (if (string? collection)
+                     (get-collection db
+                                     collection)
+                     collection)]
+   (.count collection (build-document entity-filter))
+   ))
+
+(defn pretty-print
+  ""
+  []
+  (let [result (mongodb-find "grocery"
+                             {}
+                             {:gname true
+                              :fats true
+                              :calories true}
+                             {:gname 1}
+                             0
+                             0
+                             {:case-first "lower"})]
+   (doseq [single-result result]
+    (println single-result))
+   ))
 
