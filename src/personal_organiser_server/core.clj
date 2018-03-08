@@ -362,7 +362,8 @@
                                                     #"http://personal-organiser:8445"
                                                     #"https://127.0.0.1:8443"
                                                     #"http://127.0.0.1:8445"
-                                                    #"http://localhost:3449"]
+                                                    #"http://localhost:3449"
+                                                    #"https://192.168.1.5:8443"]
                    :access-control-allow-methods   [:get :post :delete]
                    ;:access-control-allow-credentials  "true"
                    ))
