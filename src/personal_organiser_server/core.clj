@@ -151,7 +151,9 @@
          count-entities   (mon/mongodb-count
                            (:entity-type request-body)
                            (:entity-filter request-body))
-         number-of-pages  (utils/round-up count-entities rows)
+         number-of-pages  (if (:pagination request-body)
+                           (utils/round-up count-entities rows)
+                           nil)
          current-page     (if (= current-page number-of-pages)
                            (dec current-page)
                            current-page)
