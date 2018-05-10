@@ -5,7 +5,7 @@
       [compojure.handler :as chandler]
       [compojure.route :as route]
       [ring.adapter.jetty :refer [run-jetty]]
-      [personal-organiser-server.ring.middleware.cors :refer [wrap-cors]]
+      [ring.middleware.cors :refer [wrap-cors]]
       [utils-lib.core :as utils]
       [mongo-lib.core :as mon]
       [ajax-lib.http.entity-header :as eh]
