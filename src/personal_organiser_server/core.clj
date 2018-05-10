@@ -1,38 +1,17 @@
 (ns personal-organiser-server.core
  (:use [compojure.core :only [defroutes GET POST DELETE OPTIONS]]
-       [clojure.data   :only [diff]])
+       [clojure.data :only [diff]])
  (:require
-      [compojure.handler                              :as chandler]
-      [compojure.route                                :as route]
-      [ring.adapter.jetty                             :refer [run-jetty]]
+      [compojure.handler :as chandler]
+      [compojure.route :as route]
+      [ring.adapter.jetty :refer [run-jetty]]
       [personal-organiser-server.ring.middleware.cors :refer [wrap-cors]]
-      [personal-organiser-server.http.entity-header   :as eh]
-      [personal-organiser-server.utils                :as utils]
-      [personal-organiser-server.mongo                :as mon]
-      [personal-organiser-server.http.response-header :as rsh]
-      [personal-organiser-server.http.mime-type       :as mt]
-      [personal-organiser-server.http.status-code     :as stc]))
-
-(defn hello-world
-  "Function for testing success"
-  [param]
-  {:status  (stc/ok)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str "Hello World " param)})
-
-(defn hello-world-error
-  "Function for testing error"
-  [param]
-  {:status  (stc/bad-request)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str "Hello World " param)})
-   
-(defn what-is-my-ip
-  "Return ip address of this server"
-  [remote-addr]
-  {:status  (stc/ok)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    remote-addr})
+      [utils-lib.core :as utils]
+      [mongo-lib.core :as mon]
+      [ajax-lib.http.entity-header :as eh]
+      [ajax-lib.http.response-header :as rsh]
+      [ajax-lib.http.mime-type :as mt]
+      [ajax-lib.http.status-code :as stc]))
 
 (defn random-uuid
   "Generate uuid"
@@ -285,35 +264,6 @@
    ))
 
 (defroutes app-routes
-  (GET "/what-is-my-ip"
-       request
-       (println request)
-       (what-is-my-ip (:remote-addr request))
-    )
-  (GET "/hello-world"
-       request
-       (println request)
-       (hello-world "hello"))
-  (OPTIONS "/index1"
-           request
-           (println request)
-           (hello-world "index1"))
-  (POST "/index1"
-        request
-        (println request)
-        (hello-world "index1"))
-  (OPTIONS "/index2"
-           request
-           (println request)
-           (hello-world-error "index2"))
-  (POST "/index2"
-        request
-        (println request)
-        (hello-world-error "index2"))
-  (OPTIONS "/login"
-           request
-           (println request)
-           (hello-world "login"))
   (POST "/login"
         request
         (println request)
@@ -373,6 +323,8 @@
 
 (defonce server (atom nil))
 
+(def db-name "personal-organiser-db")
+
 (defn start-server
   "Start server"
   []
@@ -381,7 +333,7 @@
        (println "Server instance exists")
        (try
         (.start @server)
-        (mon/mongodb-connect)
+        (mon/mongodb-connect db-name)
         (catch Exception ex
                (println (.getMessage ex))
          ))
@@ -390,7 +342,7 @@
        (println "Server instance does not exist")
        (try
         (reset! server (run-jetty handler { :port 1612 :join? false}))
-        (mon/mongodb-connect)
+        (mon/mongodb-connect db-name)
         (catch Exception ex
                (println ex))
         ))
