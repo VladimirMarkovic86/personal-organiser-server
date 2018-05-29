@@ -1,4 +1,4 @@
-(defproject personal-organiser-server "0.1.0-SNAPSHOT"
+(defproject personal-organiser-server "0.1.0"
   :description "Personal organiser server"
   :url "http://gitlab:1610/VladimirMarkovic86/personal-organiser-server"
   :license {:name "Eclipse Public License"
