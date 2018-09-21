@@ -10,10 +10,8 @@
 
 (defn routing
   ""
-  [request-start-line
-   request]
+  [request]
   (rt/routing
-    request-start-line
     request))
 
 (defn start-server
@@ -23,9 +21,16 @@
     (srvr/start-server
       routing
       {(rsh/access-control-allow-origin) #{"https://personal-organiser:8443"
+                                           "https://personal-organiser:1611"
+                                           "http://personal-organiser:1611"
                                            "http://personal-organiser:8445"}
-       (rsh/access-control-allow-methods) "GET, POST, DELETE, PUT"}
-      1612)
+       (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
+       (rsh/access-control-allow-credentials) true}
+      1601
+      {:keystore-file-path
+        "/home/vladimir/workspace/certificate/jks/personal_organiser_server.jks"
+       :keystore-password
+        "ultras12"})
     (mon/mongodb-connect
       db-name)
     (ssn/create-indexes)
