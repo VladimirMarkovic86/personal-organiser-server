@@ -1,10 +1,10 @@
-# server
+# Personal organiser server
 
-FIXME: description
+Personal organiser server
 
 ## Installation
 
-Download from http://example.com/FIXME.
+Download from http://gitlab:1610/VladimirMarkovic86/personal-organiser-server.
 
 ## Usage
 
