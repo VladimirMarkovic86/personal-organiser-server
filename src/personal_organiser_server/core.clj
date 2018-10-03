@@ -28,7 +28,7 @@
        (rsh/access-control-allow-credentials) true}
       1601
       {:keystore-file-path
-        "/home/vladimir/workspace/certificate/jks/personal_organiser_server.jks"
+        "certificate/personal_organiser_server.jks"
        :keystore-password
         "ultras12"})
     (mon/mongodb-connect
