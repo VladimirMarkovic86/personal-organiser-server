@@ -1,0 +1,15 @@
+(db/insert-many
+  "role"
+  [{ :role-name "User administrator", :functionalities [ "user-create", "user-read", "user-update", "user-delete" ] }
+{ :role-name "User moderator", :functionalities [ "user-read", "user-update" ] }
+{ :role-name "Language administrator", :functionalities [ "language-create", "language-read", "language-update", "language-delete" ] }
+{ :role-name "Language moderator", :functionalities [ "language-read", "language-update" ] }
+{ :role-name "Role administrator", :functionalities [ "role-create", "role-read", "role-update", "role-delete" ] }
+{ :role-name "Role moderator", :functionalities [ "role-read", "role-update" ] }
+{ :role-name "Grocery administrator", :functionalities [ "grocery-create", "grocery-read", "grocery-update", "grocery-delete" ] }
+{ :role-name "Grocery moderator", :functionalities [ "grocery-read", "grocery-update" ] }
+{ :role-name "Meal administrator", :functionalities [ "meal-create", "meal-read", "meal-update", "meal-delete" ] }
+{ :role-name "Meal moderator", :functionalities [ "meal-read", "meal-update" ] }
+{ :role-name "Organism administrator", :functionalities [ "organism-create", "organism-read", "organism-update", "organism-delete" ] }
+{ :role-name "Organism moderator", :functionalities [ "organism-read", "organism-update" ] }])
+

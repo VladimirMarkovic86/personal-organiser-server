@@ -1,12 +1,10 @@
 (ns personal-organiser-server.core
+  (:gen-class)
   (:require [session-lib.core :as ssn]
             [server-lib.core :as srvr]
-            [mongo-lib.core :as mon]
+            [db-lib.core :as db]
             [common-server.core :as rt]
             [ajax-lib.http.response-header :as rsh]))
-
-(def db-name
-     "personal-organiser-db")
 
 (defn routing
   "Custom routing function"
@@ -31,8 +29,8 @@
         "certificate/personal_organiser_server.jks"
        :keystore-password
         "ultras12"})
-    (mon/mongodb-connect
-      db-name)
+    (db/connect
+      "resources/db/")
     (ssn/create-indexes)
     (catch Exception e
       (println (.getMessage e))
@@ -44,7 +42,6 @@
   []
   (try
     (srvr/stop-server)
-    (mon/mongodb-disconnect)
     (catch Exception e
       (println (.getMessage e))
      ))

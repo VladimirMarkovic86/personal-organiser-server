@@ -1,0 +1,62 @@
+(db/insert-many
+  "language"
+  [{ :code 1, :english "Save", :serbian "Сачувај" }
+{ :code 2, :english "Log out", :serbian "Одјави се" }
+{ :code 3, :english "Home", :serbian "Почетна" }
+{ :code 4, :english "Create", :serbian "Креирај" }
+{ :code 5, :english "Show all", :serbian "Прикажи све" }
+{ :code 6, :english "Details", :serbian "Детаљи" }
+{ :code 7, :english "Edit", :serbian "Измени" }
+{ :code 8, :english "Delete", :serbian "Обриши" }
+{ :code 9, :english "Actions", :serbian "Акције" }
+{ :code 10, :english "Insert", :serbian "Упиши" }
+{ :code 11, :english "Update", :serbian "Ажурирај" }
+{ :code 12, :english "Cancel", :serbian "Откажи" }
+{ :code 13, :english "Search", :serbian "Претрага" }
+{ :code 14, :english "E-mail", :serbian "Е-пошта" }
+{ :code 15, :english "Password", :serbian "Лозинка" }
+{ :code 16, :english "Remember me", :serbian "Упамти ме" }
+{ :code 17, :english "Log in", :serbian "Пријави се" }
+{ :code 18, :english "Sign up", :serbian "Направи налог" }
+{ :code 19, :english "Username", :serbian "Корисничко име" }
+{ :code 20, :english "Confirm password", :serbian "Потврди лозинку" }
+{ :code 21, :english "User", :serbian "Корисник" }
+{ :code 22, :english "Role", :serbian "Улога" }
+{ :code 23, :english "Language", :serbian "Језик" }
+{ :code 24, :english "Label code", :serbian "Код лабеле" }
+{ :code 25, :english "English", :serbian "Енглески" }
+{ :code 26, :english "Serbian", :serbian "Српски" }
+{ :code 27, :english "Functionality", :serbian "Функционалност" }
+{ :code 28, :english "Role name", :serbian "Назив улоге" }
+{ :code 29, :english "Functionalities", :serbian "Функционалности" }
+{ :code 30, :english "Roles", :serbian "Улоге" }
+{ :code 1005, :english "Birthday", :serbian "Датум рођења" }
+{ :code 1006, :english "Gender", :serbian "Пол" }
+{ :code 1007, :english "Diet", :serbian "Исхрана" }
+{ :code 1008, :english "Activity", :serbian "Активности" }
+{ :code 1009, :english "Grocery", :serbian "Намирница" }
+{ :code 1010, :english "Name", :serbian "Назив" }
+{ :code 1011, :english "Calories", :serbian "Калорије" }
+{ :code 1012, :english "Proteins", :serbian "Протеини" }
+{ :code 1013, :english "Fats", :serbian "Масти" }
+{ :code 1014, :english "Carbonhydrates", :serbian "Угљени хидрати" }
+{ :code 1015, :english "Description", :serbian "Опис" }
+{ :code 1016, :english "Origin", :serbian "Порекло" }
+{ :code 1017, :english "Meal", :serbian "Оброк" }
+{ :code 1018, :english "Calories sum", :serbian "Укупно калорија" }
+{ :code 1019, :english "Proteins sum", :serbian "Укупно протеина" }
+{ :code 1020, :english "Fats sum", :serbian "Укупно масти" }
+{ :code 1021, :english "Carbonhydrates sum", :serbian "Укупно угљених хидрата" }
+{ :code 1022, :english "Image", :serbian "Слика" }
+{ :code 1023, :english "Type of meal", :serbian "Врста оброка" }
+{ :code 1024, :english "Portion", :serbian "Порција" }
+{ :code 1025, :english "Ingrediants", :serbian "Састојци" }
+{ :code 1026, :english "Organism", :serbian "Организам" }
+{ :code 1001, :english "First name", :serbian "Име" }
+{ :code 1002, :english "Last name", :serbian "Презиме" }
+{ :code 1003, :english "Height", :serbian "Висина" }
+{ :code 1004, :english "Weight", :serbian "Тежина" }
+{ :code 1027, :english "Grams", :serbian "Грама" }
+{ :code 1028, :english "Quantity", :serbian "Квантитет" }
+{ :code 31, :english "No entities", :serbian "Нема ентитета" }])
+
