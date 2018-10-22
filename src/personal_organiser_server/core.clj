@@ -24,21 +24,24 @@
   "Start server"
   []
   (try
-    (srvr/start-server
-      routing
-      {(rsh/access-control-allow-origin) #{"https://personal-organiser:8443"
-                                           "https://personal-organiser:1611"
-                                           "http://personal-organiser:1611"
-                                           "http://personal-organiser:8445"}
-       (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
-       (rsh/access-control-allow-credentials) true}
-      (or (read-string
-            (System/getenv "PORT"))
-          1601)
-      {:keystore-file-path
-        "certificate/personal_organiser_server.jks"
-       :keystore-password
-        "ultras12"})
+    (let [port (System/getenv "PORT")
+          port (if port
+                 (read-string
+                   port)
+                 1601)]
+      (srvr/start-server
+        routing
+        {(rsh/access-control-allow-origin) #{"https://personal-organiser:8443"
+                                             "https://personal-organiser:1611"
+                                             "http://personal-organiser:1611"
+                                             "http://personal-organiser:8445"}
+         (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
+         (rsh/access-control-allow-credentials) true}
+        port
+        {:keystore-file-path
+          "certificate/personal_organiser_server.jks"
+         :keystore-password
+          "ultras12"}))
     (mon/mongodb-connect
       db-uri
       db-name)
