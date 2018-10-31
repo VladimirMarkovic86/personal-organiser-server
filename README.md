@@ -36,6 +36,8 @@ By default project listens on port 1601, so you can make requests on https://per
 
 **For purpose of making requests personal-organiser-client was made and you should start up personal-organiser-client also.**
 
+**MongoDB server should also be up and running and its URI link should be set in PROD_MONGODB environment variable**
+
 ## Authors
 
 * **Vladimir Markovic** - [VladimirMarkovic86](https://github.com/VladimirMarkovic86)
