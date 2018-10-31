@@ -65,6 +65,7 @@
      { :code 1004, :english "Weight", :serbian "Тежина" }
      { :code 1027, :english "Grams", :serbian "Грама" }
      { :code 1028, :english "Quantity", :serbian "Квантитет" }
+     { :code 1029, :english "Add at least one ingredient", :serbian "Додајте бар један састојак" }
      { :code 31, :english "No entities", :serbian "Нема ентитета" }])
   (mon/mongodb-insert-many
     "role"
