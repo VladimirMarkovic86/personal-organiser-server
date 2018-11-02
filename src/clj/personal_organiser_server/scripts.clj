@@ -1,12 +1,31 @@
 (ns personal-organiser-server.scripts
   (:require [mongo-lib.core :as mon]
-            [utils-lib.core :as utils]))
+            [utils-lib.core :as utils]
+            [common-middle.collection-names :refer [db-updates-cname
+                                                    language-cname
+                                                    role-cname
+                                                    user-cname
+                                                    preferences-cname]]
+            [common-middle.role-names :refer [user-admin-rname
+                                              user-mod-rname
+                                              language-admin-rname
+                                              language-mod-rname
+                                              role-admin-rname
+                                              role-mod-rname]]
+            [personal-organiser-middle.role-names :refer [grocery-admin-rname
+                                                          grocery-mod-rname
+                                                          meal-admin-rname
+                                                          meal-mod-rname
+                                                          organism-admin-rname
+                                                          organism-mod-rname]]
+            [common-middle.functionalities :as fns]
+            [personal-organiser-middle.functionalities :as pomfns]))
 
 (defn initialize-db
   "Initialize database"
   []
   (mon/mongodb-insert-many
-    "language"
+    language-cname
     [{ :code 1, :english "Save", :serbian "Сачувај" }
      { :code 2, :english "Log out", :serbian "Одјави се" }
      { :code 3, :english "Home", :serbian "Почетна" }
@@ -65,62 +84,122 @@
      { :code 1004, :english "Weight", :serbian "Тежина" }
      { :code 1027, :english "Grams", :serbian "Грама" }
      { :code 1028, :english "Quantity", :serbian "Квантитет" }
-     { :code 1029, :english "Add at least one ingredient", :serbian "Додајте бар један састојак" }
      { :code 31, :english "No entities", :serbian "Нема ентитета" }])
   (mon/mongodb-insert-many
-    "role"
-    [{ :role-name "User administrator", :functionalities [ "user-create", "user-read", "user-update", "user-delete" ] }
-     { :role-name "User moderator", :functionalities [ "user-read", "user-update" ] }
-     { :role-name "Language administrator", :functionalities [ "language-create", "language-read", "language-update", "language-delete" ] }
-     { :role-name "Language moderator", :functionalities [ "language-read", "language-update" ] }
-     { :role-name "Role administrator", :functionalities [ "role-create", "role-read", "role-update", "role-delete" ] }
-     { :role-name "Role moderator", :functionalities [ "role-read", "role-update" ] }
-     { :role-name "Grocery administrator", :functionalities [ "grocery-create", "grocery-read", "grocery-update", "grocery-delete" ] }
-     { :role-name "Grocery moderator", :functionalities [ "grocery-read", "grocery-update" ] }
-     { :role-name "Meal administrator", :functionalities [ "meal-create", "meal-read", "meal-update", "meal-delete" ] }
-     { :role-name "Meal moderator", :functionalities [ "meal-read", "meal-update" ] }
-     { :role-name "Organism administrator", :functionalities [ "organism-create", "organism-read", "organism-update", "organism-delete" ] }
-     { :role-name "Organism moderator", :functionalities [ "organism-read", "organism-update" ] }])
+    role-cname
+    [{:role-name user-admin-rname
+      :functionalities [fns/user-create
+                        fns/user-read
+                        fns/user-update
+                        fns/user-delete]}
+     {:role-name user-mod-rname
+      :functionalities [fns/user-read
+                        fns/user-update]}
+     {:role-name language-admin-rname
+      :functionalities [fns/language-create
+                        fns/language-read
+                        fns/language-update
+                        fns/language-delete]}
+     {:role-name language-mod-rname
+      :functionalities [fns/language-read
+                        fns/language-update]}
+     {:role-name role-admin-rname
+      :functionalities [fns/role-create
+                        fns/role-read
+                        fns/role-update
+                        fns/role-delete]}
+     {:role-name role-mod-rname
+      :functionalities [fns/role-read
+                        fns/role-update]}                       
+     {:role-name grocery-admin-rname
+      :functionalities [pomfns/grocery-create
+                        pomfns/grocery-read
+                        pomfns/grocery-update
+                        pomfns/grocery-delete]}
+     {:role-name grocery-mod-rname
+      :functionalities [pomfns/grocery-read
+                        pomfns/grocery-update]}
+     {:role-name meal-admin-rname
+      :functionalities [pomfns/meal-create
+                        pomfns/meal-read
+                        pomfns/meal-update
+                        pomfns/meal-delete]}
+     {:role-name meal-mod-rname
+      :functionalities [pomfns/meal-read
+                        pomfns/meal-update]}
+     {:role-name organism-admin-rname
+      :functionalities [pomfns/organism-create
+                        pomfns/organism-read
+                        pomfns/organism-update
+                        pomfns/organism-delete]}
+     {:role-name organism-mod-rname
+      :functionalities [pomfns/organism-read
+                        pomfns/organism-update]}])
   (let [user-admin-id (:_id
                         (mon/mongodb-find-one
-                          "role"
-                          {:role-name "User administrator"}))
+                          role-cname
+                          {:role-name user-admin-rname}))
         language-admin-id (:_id
                             (mon/mongodb-find-one
-                              "role"
-                              {:role-name "Language administrator"}))
+                              role-cname
+                              {:role-name language-admin-rname}))
         role-admin-id (:_id
                         (mon/mongodb-find-one
-                          "role"
-                          {:role-name "Role administrator"}))
+                          role-cname
+                          {:role-name role-admin-rname}))
         grocery-admin-id (:_id
                            (mon/mongodb-find-one
-                             "role"
-                             {:role-name "Grocery administrator"}))
+                             role-cname
+                             {:role-name grocery-admin-rname}))
         meal-admin-id (:_id
                         (mon/mongodb-find-one
-                          "role"
-                          {:role-name "Meal administrator"}))
+                          role-cname
+                          {:role-name meal-admin-rname}))
         organism-admin-id (:_id
                             (mon/mongodb-find-one
-                              "role"
-                              {:role-name "Organism administrator"}))
+                              role-cname
+                              {:role-name organism-admin-rname}))
         encrypted-password (utils/encrypt-password
                              (or (System/getenv "ADMIN_USER_PASSWORD")
                                  "123"))]
     (mon/mongodb-insert-one
-      "user"
+      user-cname
       {:username "admin"
        :email "123@123"
        :password encrypted-password
-       :roles [user-admin-id language-admin-id role-admin-id grocery-admin-id meal-admin-id organism-admin-id]}))
+       :roles [user-admin-id
+               language-admin-id
+               role-admin-id
+               grocery-admin-id
+               meal-admin-id
+               organism-admin-id]}))
   (let [user-id (:_id
                   (mon/mongodb-find-one
-                    "user"
+                    user-cname
                     {}))]
     (mon/mongodb-insert-one
-      "preferences"
-      {:user-id user-id, :language "serbian", :language-name "Srpski" }))
+      preferences-cname
+      {:user-id user-id
+       :language "serbian"
+       :language-name "Srpski"}))
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:initialized true
+     :date (java.util.Date.)})
+ )
+
+(defn db-update-1
+  "Database update 1"
+  []
+  (mon/mongodb-insert-many
+    language-cname
+    [{:code 1029
+      :english "Add at least one ingredient"
+      :serbian "Додајте бар један састојак"}])
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:update 1
+     :date (java.util.Date.)})
  )
 
 (defn initialize-db-if-needed
@@ -128,9 +207,13 @@
   []
   (try
     (when-not (mon/mongodb-exists
-                "language"
-                {:english "Save"})
+                db-updates-cname
+                {:initialized true})
       (initialize-db))
+    (when-not (mon/mongodb-exists
+                db-updates-cname
+                {:update 1})
+      (db-update-1))
     (catch Exception e
       (println e))
    ))
