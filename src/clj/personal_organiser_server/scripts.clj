@@ -202,6 +202,40 @@
      :date (java.util.Date.)})
  )
 
+(defn db-update-2
+  "Database update 2"
+  []
+  (mon/mongodb-insert-many
+    language-cname
+    [{:code 1030 :english "Breakfast" :serbian "Доручак"}
+     {:code 1031 :english "Lunch" :serbian "Ручак"}
+     {:code 1032 :english "Dinner" :serbian "Вечера"}
+     {:code 1033 :english "Main course" :serbian "Главно јело"}
+     {:code 1034 :english "Sauce" :serbian "СОС"}
+     {:code 1035 :english "Beverage" :serbian "Пиће"}
+     {:code 1036 :english "Soup" :serbian "Супа"}
+     {:code 1037 :english "Sweets, Cake, Compote, Ice cream" :serbian "Слаткиши, Торте, Компот, Сладолед"}
+     {:code 1038 :english "Salad" :serbian "Салата"}
+     {:code 1039 :english "No ingredients" :serbian "Без састојака"}
+     {:code 32 :english "-- Select one --" :serbian "-- Одабери један --"}
+     {:code 1040 :english "Ingredients" :serbian "Састојци"}
+     {:code 1041 :english "Add" :serbian "Додај"}
+     {:code 1042 :english "All" :serbian "Све"}
+     {:code 1043 :english "Vegetarian" :serbian "Вегетаријанско"}
+     {:code 1044 :english "Vegetarian" :serbian "Вегетаријанска"}
+     {:code 1045 :english "Mainly sitting" :serbian "Углавном седеће"}
+     {:code 1046 :english "Easy physical labor" :serbian "Лак физички рад"}
+     {:code 1047 :english "Medium physical labor" :serbian "Средње тежак физички рад"}
+     {:code 1048 :english "Hard physical labor" :serbian "Тежак физички рад"}
+     {:code 1049 :english "Very hard physical labor" :serbian "Веома тежак физички рад"}
+     {:code 1050 :english "Male" :serbian "Мушки"}
+     {:code 1051 :english "Female" :serbian "Женски"}])
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:update 2
+     :date (java.util.Date.)})
+ )
+
 (defn initialize-db-if-needed
   "Check if database exists and initialize it if it doesn't"
   []
@@ -214,6 +248,10 @@
                 db-updates-cname
                 {:update 1})
       (db-update-1))
+    (when-not (mon/mongodb-exists
+                db-updates-cname
+                {:update 2})
+      (db-update-2))
     (catch Exception e
       (println e))
    ))
