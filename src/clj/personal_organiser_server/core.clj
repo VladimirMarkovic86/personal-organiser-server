@@ -40,6 +40,10 @@
                                         "http://personal-organiser:1611"
                                         "https://personal-organiser:1601"
                                         "http://personal-organiser:1601"
+                                        "https://192.168.1.86:1611"
+                                        "http://192.168.1.86:1611"
+                                        "https://192.168.1.86:1601"
+                                        "http://192.168.1.86:1601"
                                         "http://personal-organiser:8445"}
           access-control-allow-origin (if (System/getenv "CLIENT_ORIGIN")
                                         (conj
