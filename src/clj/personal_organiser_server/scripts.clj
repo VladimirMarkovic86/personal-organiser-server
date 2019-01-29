@@ -5,13 +5,15 @@
                                                     language-cname
                                                     role-cname
                                                     user-cname
-                                                    preferences-cname]]
+                                                    preferences-cname
+                                                    chat-cname]]
             [common-middle.role-names :refer [user-admin-rname
                                               user-mod-rname
                                               language-admin-rname
                                               language-mod-rname
                                               role-admin-rname
-                                              role-mod-rname]]
+                                              role-mod-rname
+                                              chat-rname]]
             [personal-organiser-middle.role-names :refer [grocery-admin-rname
                                                           grocery-mod-rname
                                                           meal-admin-rname
@@ -309,10 +311,34 @@
      {:code 64,
       :english "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character @$!%*?&..",
       :serbian "Лозинка мора да садржи барем једно велико слово, једно мало слово, један број и један специјални карактер @$!%*?&.." }
+     {:code 65,
+      :english "Please select a file.",
+      :serbian "Молим одаберите фајл." }
      ])
   (mon/mongodb-insert-one
     db-updates-cname
     {:update 3
+     :date (java.util.Date.)})
+ )
+
+(defn db-update-4
+  "Database update 4"
+  []
+  (mon/mongodb-insert-many
+    language-cname
+    [{:code 66, :english "Type your message here", :serbian "Упишите вашу поруку овде" }
+     {:code 67, :english "Send", :serbian "Пошаљи" }
+     {:code 68, :english "Chat", :serbian "Ћаскање" }
+		   {:code 69, :english "Refresh", :serbian "Освежи" }
+     ])
+		(mon/mongodb-insert-many
+    role-cname
+    [{:role-name chat-rname
+      :functionalities [fns/chat]}
+     ])
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:update 4
      :date (java.util.Date.)})
  )
 
@@ -336,6 +362,10 @@
                 db-updates-cname
                 {:update 3})
       (db-update-3))
+    (when-not (mon/mongodb-exists
+                db-updates-cname
+                {:update 4})
+      (db-update-4))
     (catch Exception e
       (println e))
    ))
