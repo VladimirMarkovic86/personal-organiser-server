@@ -5,7 +5,9 @@
             [personal-organiser-server.scripts.language :as possl]
             [personal-organiser-server.scripts.role :as possr]
             [personal-organiser-server.scripts.user :as possu]
-            [personal-organiser-server.scripts.grocery :as possg]))
+            [personal-organiser-server.scripts.grocery :as possg]
+            [personal-organiser-server.scripts.meal :as possm]
+            [personal-organiser-server.scripts.organism :as posso]))
 
 (defn initialize-db
   "Initialize database"
@@ -15,6 +17,8 @@
   (possr/insert-roles)
   (possu/update-users)
   (possg/insert-groceries)
+  (possm/insert-meals)
+  (posso/insert-organisms)
   (mon/mongodb-insert-one
     db-updates-cname
     {:initialized true

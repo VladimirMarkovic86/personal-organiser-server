@@ -447,5 +447,17 @@
      { :code 1262
 	      :english "Dinner's daily calories share in percents"
 	      :serbian "Процентуални удео вечере у дневним потребама за калоријама" }
-     ]))
+     { :code 1263
+	      :english "Green peas with pork meat"
+	      :serbian "Грашак са свињским месом" }
+     { :code 1264
+	      :english "Green peas with beef meat"
+	      :serbian "Грашак са говеђим месом" }
+     { :code 1265
+	      :english "Green peas with chicken meat"
+	      :serbian "Грашак са пилетином" }
+     { :code 1266
+	      :english "Milk with corn flakes"
+	      :serbian "Млеко са кукурузним пахуљицама" }
+	    ]))
 
