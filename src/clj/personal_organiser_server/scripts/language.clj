@@ -5,6 +5,17 @@
 (defn insert-labels
   "Inserts labels"
   []
+  (mon/mongodb-update-one
+    language-cname
+    {:code 62}
+    {:$set
+      {:english "Personal organiser app" :serbian "Лични организатор"}})
+  (mon/mongodb-update-one
+    language-cname
+    {:code 63}
+    {:$set
+      {:english "Personal organiser app is based on sample app, and it implements calculator for daily calories needs."
+       :serbian "Лични организатор је апликација заснована на sample app пројекту, и имплементира рачунање дневних потреба за калоријама."}})
   (mon/mongodb-insert-many
     language-cname
     [{ :code 1001 :english "First name" :serbian "Име" }
