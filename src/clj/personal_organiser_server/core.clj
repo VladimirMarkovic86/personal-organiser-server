@@ -12,7 +12,6 @@
             [ajax-lib.http.mime-type :as mt]
             [ajax-lib.http.status-code :as stc]
             [ajax-lib.http.request-method :as rm]
-            [utils-lib.core :refer [parse-body]]
             [audit-lib.core :refer [audit]]
             [personal-organiser-middle.collection-names :refer [grocery-cname
                                                                 meal-cname
@@ -91,7 +90,7 @@
   (let [{organism-id :organism-id
          breakfast-calories-share :breakfast-calories-share
          lunch-calories-share :lunch-calories-share
-         dinner-calories-share :dinner-calories-share} (parse-body
+         dinner-calories-share :dinner-calories-share} (:body
                                                          request)
         organism (mon/mongodb-find-by-id
                    organism-cname
@@ -104,11 +103,9 @@
                                 lunch-calories-share
                                 dinner-calories-share)]
     {:status (stc/ok)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body (str
-             {:status "success"
-              :data meals-recommendations})})
- )
+     :headers {(eh/content-type) (mt/text-clojurescript)}
+     :body {:status "success"
+            :data meals-recommendations}}))
 
 (def logged-in-routing-set
   (atom
