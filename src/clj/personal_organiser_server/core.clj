@@ -126,9 +126,10 @@
     @logged-out-routing-set)
   (let [response (rt/routing
                    request)]
-    (audit
-      request
-      response)
+    (when @config/audit-action-a
+      (audit
+        request
+        response))
     response))
 
 (defn start-server
@@ -139,6 +140,7 @@
           access-control-map (config/build-access-control-map)
           certificates-map (config/build-certificates-map)]
       (config/set-thread-pool-size)
+      (config/set-audit)
       (srvr/start-server
         routing
         access-control-map
