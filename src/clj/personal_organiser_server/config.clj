@@ -1,6 +1,12 @@
 (ns personal-organiser-server.config
-  (:require [ajax-lib.http.response-header :as rsh]
-            [server-lib.core :as srvr]))
+  (:require [server-lib.core :as srvr]
+            [ajax-lib.http.response-header :as rsh]
+            [personal-organiser-server.grocery.entity :as grocerye]
+            [personal-organiser-server.meal.entity :as meale]
+            [personal-organiser-server.organism.entity :as organisme]
+            [common-server.core :as rt]
+            [utils-lib.core-clj :as utilsclj]
+            [pdflatex-lib.core :as tex]))
 
 (def db-uri
      (or (System/getenv "MONGODB_URI")
@@ -9,6 +15,9 @@
 
 (def db-name
      "personal-organiser-db")
+
+(def project-absolute-path
+     "/home/vladimir/workspace/clojure/projects/personal_organiser_server")
 
 (defn define-port
   "Defines server's port"
@@ -104,5 +113,44 @@
     (reset!
       audit-action-a
       audit-actions))
+ )
+
+(defn add-custom-entities-to-entities-map
+  "Adds custom entities for this project into entities map from common-server"
+  []
+  (swap!
+    rt/entities-map
+    assoc
+    :grocery {:reports grocerye/reports}
+    :meal {:reports meale/reports}
+    :organism {:reports organisme/reports}))
+
+(defn set-report-paths
+  "Sets report paths"
+  []
+  (let [absolute-path (:out (utilsclj/execute-shell-command
+                              "pwd"))
+        path-prefix (if (= absolute-path
+                           project-absolute-path)
+                      ""
+                      (str
+                        project-absolute-path
+                        "/"))]
+    (reset!
+      tex/reports-templates-path
+      (or (System/getenv
+            "REPORTS_TEMPLATES_PATH")
+          (str
+            path-prefix
+            @tex/reports-templates-path))
+     )
+    (reset!
+      tex/reports-generated-path
+      (or (System/getenv
+            "REPORTS_GENERATED_PATH")
+          (str
+            path-prefix
+            @tex/reports-generated-path))
+     ))
  )
 
