@@ -13,7 +13,7 @@
                  [org.clojars.vladimirmarkovic86/common-middle "0.2.6"]
                  [org.clojars.vladimirmarkovic86/utils-lib "0.4.8"]
                  [org.clojars.vladimirmarkovic86/audit-lib "0.1.25"]
-                 [org.clojars.vladimirmarkovic86/personal-organiser-lib "0.1.3"]
+                 [org.clojars.vladimirmarkovic86/personal-organiser-lib "0.1.4"]
                  [org.clojars.vladimirmarkovic86/pdflatex-lib "0.1.2"]
                  ]
 
