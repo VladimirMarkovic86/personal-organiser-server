@@ -5,6 +5,12 @@
             [personal-organiser-server.meal.entity :as meale]
             [personal-organiser-server.organism.entity :as organisme]
             [common-server.core :as rt]
+            [common-middle.role-names :refer [chat-rname
+                                              reports-rname]]
+            [personal-organiser-middle.role-names :refer [grocery-admin-rname
+                                                          meal-admin-rname
+                                                          organism-admin-rname
+                                                          meal-recommendation-rname]]
             [utils-lib.core-clj :as utilsclj]
             [pdflatex-lib.core :as tex]))
 
@@ -152,5 +158,18 @@
             path-prefix
             @tex/reports-generated-path))
      ))
+ )
+
+(defn read-sign-up-roles
+  "Reads and fills sign up roles vector in common-server.core namespace"
+  []
+  (let [role-names [chat-rname
+                    reports-rname
+                    grocery-admin-rname
+                    meal-admin-rname
+                    organism-admin-rname
+                    meal-recommendation-rname]]
+    (rt/read-sign-up-role-ids
+      role-names))
  )
 
