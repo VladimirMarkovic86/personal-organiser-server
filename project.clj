@@ -8,7 +8,7 @@
                  [org.clojars.vladimirmarkovic86/mongo-lib "0.2.8"]
                  [org.clojars.vladimirmarkovic86/ajax-lib "0.1.9"]
                  [org.clojars.vladimirmarkovic86/session-lib "0.2.19"]
-                 [org.clojars.vladimirmarkovic86/common-server "0.3.34"]
+                 [org.clojars.vladimirmarkovic86/common-server "0.3.35"]
                  [org.clojars.vladimirmarkovic86/personal-organiser-middle "0.2.8"]
                  [org.clojars.vladimirmarkovic86/common-middle "0.2.7"]
                  [org.clojars.vladimirmarkovic86/utils-lib "0.4.9"]
