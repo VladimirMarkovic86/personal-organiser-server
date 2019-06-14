@@ -1,6 +1,7 @@
 (ns personal-organiser-server.grocery.entity
   (:require [language-lib.core :refer [get-label]]
-            [personal-organiser-middle.grocery.entity :as pomge]))
+            [personal-organiser-middle.grocery.entity :as pomge]
+            [common-server.preferences :as prf]))
 
 (defn format-label-code-field
   "Formats label code field"
@@ -43,7 +44,10 @@
 
 (defn reports
   "Returns reports projection"
-  [& [chosen-language]]
+  [request
+   & [chosen-language]]
+  (prf/set-preferences
+    request)
   {:entity-label (get-label
                    1009
                    chosen-language)
@@ -58,7 +62,12 @@
                 ;:group
                 ]
    :qsort {:gname 1}
-   :rows pomge/rows
+   :rows (int
+           (pomge/calculate-rows))
+   :table-rows (int
+                 @pomge/table-rows-a)
+   :card-columns (int
+                   @pomge/card-columns-a)
    :labels {:gname (get-label
                      1010
                      chosen-language)

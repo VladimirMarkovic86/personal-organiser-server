@@ -1,6 +1,7 @@
 (ns personal-organiser-server.meal.entity
   (:require [language-lib.core :refer [get-label]]
-            [personal-organiser-middle.meal.entity :as pomme]))
+            [personal-organiser-middle.meal.entity :as pomme]
+            [common-server.preferences :as prf]))
 
 (defn format-label-code-field
   "Formats label code field"
@@ -16,7 +17,10 @@
 
 (defn reports
   "Returns reports projection"
-  [& [chosen-language]]
+  [request
+   & [chosen-language]]
+  (prf/set-preferences
+    request)
   {:entity-label (get-label
                    1017
                    chosen-language)
@@ -33,7 +37,12 @@
                 ;:ingredients
                 ]
    :qsort {:gname 1}
-   :rows pomme/rows
+   :rows (int
+           (pomme/calculate-rows))
+   :table-rows (int
+                 @pomme/table-rows-a)
+   :card-columns (int
+                   @pomme/card-columns-a)
    :labels {:mname (get-label
                      1010
                      chosen-language)

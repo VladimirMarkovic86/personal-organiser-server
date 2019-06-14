@@ -482,5 +482,8 @@
      { :code 1266
 	      :english "Milk with corn flakes"
 	      :serbian "Млеко са кукурузним пахуљицама" }
+     { :code 1267 :english "Grocery entity" :serbian "Ентитет намирница" }
+     { :code 1268 :english "Meal entity" :serbian "Ентитет оброк" }
+     { :code 1269 :english "Organism entity" :serbian "Ентитет организам" }
 	    ]))
 

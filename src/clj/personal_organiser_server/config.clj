@@ -5,6 +5,8 @@
             [personal-organiser-server.meal.entity :as meale]
             [personal-organiser-server.organism.entity :as organisme]
             [common-server.core :as rt]
+            [common-server.preferences :as prf]
+            [personal-organiser-server.preferences :as posprf]
             [common-middle.role-names :refer [chat-rname
                                               reports-rname]]
             [personal-organiser-middle.role-names :refer [grocery-admin-rname
@@ -202,4 +204,11 @@
       rt/reset-password-mail-template-path
       reset-password-mail-template-path))
  )
+
+(defn bind-set-specific-preferences-fn
+  "Binds set specific preferences to common server atom"
+  []
+  (reset!
+    prf/set-specific-preferences-a-fn
+    posprf/set-specific-preferences-fn))
 

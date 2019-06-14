@@ -1,7 +1,8 @@
 (ns personal-organiser-server.organism.entity
   (:require [language-lib.core :refer [get-label]]
             [personal-organiser-middle.organism.entity :as pomoe]
-            [personal-organiser-middle.grocery.entity :as pomge])
+            [personal-organiser-middle.grocery.entity :as pomge]
+            [common-server.preferences :as prf])
   (:import [java.text SimpleDateFormat]))
 
 (defn format-birthday-field
@@ -128,7 +129,10 @@
 
 (defn reports
   "Returns reports projection"
-  [& [chosen-language]]
+  [request
+   & [chosen-language]]
+  (prf/set-preferences
+    request)
   {:entity-label (get-label
                    1026
                    chosen-language)
@@ -143,7 +147,12 @@
                 :activity
                 ]
    :qsort {:first-name 1}
-   :rows pomoe/rows
+   :rows (int
+           (pomoe/calculate-rows))
+   :table-rows (int
+                 @pomoe/table-rows-a)
+   :card-columns (int
+                   @pomoe/card-columns-a)
    :labels {:first-name (get-label
                           1001
                           chosen-language)
