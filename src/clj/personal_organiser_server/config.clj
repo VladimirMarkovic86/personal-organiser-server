@@ -13,6 +13,7 @@
                                                           meal-admin-rname
                                                           organism-admin-rname
                                                           meal-recommendation-rname]]
+            [personal-organiser-middle.functionalities-by-url :as pomfns-by-url]
             [utils-lib.core-clj :as utilsclj]
             [pdflatex-lib.core :as tex]))
 
@@ -211,4 +212,9 @@
   (reset!
     prf/set-specific-preferences-a-fn
     posprf/set-specific-preferences-fn))
+
+(defn bind-specific-functionalities-by-url
+  "Binds specific functionalities by url"
+  []
+  (pomfns-by-url/bind-specific-functionalities-by-url))
 

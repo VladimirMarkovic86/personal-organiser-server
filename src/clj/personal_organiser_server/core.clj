@@ -84,14 +84,17 @@
        ))
     @meals-with-groceries))
 
-(defn calculate-meal-recommendations
-  "Calculates meal recommendations for particular organism"
+(defmethod rt/routing-fn
+  [rm/POST
+   prurls/calculate-meal-recommendations-url
+   :logged-in
+   :authorized]
   [request]
+  "Calculates meal recommendations for particular organism"
   (let [{organism-id :organism-id
          breakfast-calories-share :breakfast-calories-share
          lunch-calories-share :lunch-calories-share
-         dinner-calories-share :dinner-calories-share} (:body
-                                                         request)
+         dinner-calories-share :dinner-calories-share} (:body request)
         organism (mon/mongodb-find-by-id
                    organism-cname
                    organism-id)
@@ -107,23 +110,9 @@
      :body {:status "success"
             :data meals-recommendations}}))
 
-(def logged-in-routing-set
-  (atom
-    #{{:method rm/POST
-       :uri prurls/calculate-meal-recommendations-url
-       :authorization pomfns/meal-recommendation
-       :action calculate-meal-recommendations}}))
-
-(def logged-out-routing-set
-  (atom
-    #{}))
-
 (defn routing
   "Custom routing function"
   [request]
-  (rt/add-new-routes
-    @logged-in-routing-set
-    @logged-out-routing-set)
   (let [response (rt/routing
                    request)]
     (when @config/audit-action-a
@@ -157,6 +146,7 @@
     (config/setup-e-mail-account)
     (config/setup-e-mail-templates-path)
     (config/bind-set-specific-preferences-fn)
+    (config/bind-specific-functionalities-by-url)
     (catch Exception e
       (println (.getMessage e))
      ))
